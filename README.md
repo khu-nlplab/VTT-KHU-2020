@@ -13,7 +13,7 @@ __How to Use__
 question level classification pre-trained model download link : <br>
 >[Google drive link](https://drive.google.com/drive/folders/1RUj_tEFbCpfPTPL0_9eA3QsbaHcymD3r?usp=sharing)
 
-3. ``Level_Classification/LevelClassificationModel.py``를 import하고 해당 모듈에 선언된 LevelClassificationModel class를 사용하시면 되겠습니다.
+3. ``Question Difficulty Estimation/LevelClassificationModel.py``를 import하고 해당 모듈에 선언된 LevelClassificationModel class를 사용하시면 되겠습니다.
 > 현재 main.py 파일을 사용예시로 해두었습니다. 
 
 4. ``output``으로 다음 두가지가 출력됩니다.
