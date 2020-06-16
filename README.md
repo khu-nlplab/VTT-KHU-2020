@@ -1,5 +1,4 @@
  Video Turing Test 2020<br>
- ####3차년도 연구 모델 링크 : https://github.com/khu-nlplab/VTT-KHU-2019
 =====
 Question Level classification (QLC)
 -----------------------------
@@ -42,3 +41,6 @@ Answer selection classification pre-trained model and data download link: <br>
 >Selected Answer : blah blah ~.
 
 Contact : Gyu-Min Park (pgm1219@khu.ac.kr)
+
+만약 작년 연구 모델이 보고싶으시다면 <br>
+3차년도 연구 모델 링크 : https://github.com/khu-nlplab/VTT-KHU-2019
