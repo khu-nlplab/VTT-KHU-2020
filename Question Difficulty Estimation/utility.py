@@ -1,6 +1,7 @@
 import csv
 import logging
-
+import tokenization
+import os
 
 logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt='%m/%d/%Y %H:%M:%S',
@@ -8,8 +9,7 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(name)s -   %(message
 
 logger = logging.getLogger(__name__)
 
-import tokenization
-import os
+
 class InputExample(object):
     """A single training/test example for simple sequence classification."""
 
@@ -18,12 +18,11 @@ class InputExample(object):
 
         Args:
             guid: Unique id for the example.
-            text_a: string. The untokenized text of the first sequence. For single
-            sequence tasks, only this sequence must be specified.
-            text_b: (Optional) string. The untokenized text of the second sequence.
-            Only must be specified for sequence pair tasks.
-            label: (Optional) string. The label of the example. This should be
-            specified for train and dev examples, but not for test examples.
+            question: string. The untokenized text of the question.
+            des: (Optional) string. The untokenized text of the video description.
+            ans: (Optional) string. The untokenized text of the answer.
+            utter: (Optional) string. The untokenized text of utterance.
+            label: (Optional) string. The difficulty level of the example.
         """
         self.guid = guid
         self.question = question
@@ -55,6 +54,7 @@ class InputFeatures(object):
         self.utter_seg_ids = utter_seg_ids
 
         self.label_id = label_id
+
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
 
