@@ -1,0 +1,7 @@
+/data
+/data_sample
+/log
+/ckpt
+*.zip
+*.pickle
+__pycache__
