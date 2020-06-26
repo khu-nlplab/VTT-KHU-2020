@@ -26,19 +26,35 @@ Multiple Answer Selection (MAS)
 ------------------
 다중의 응답을 입력으로 받아 가장 적절한 응답을 선택하는 모델입니다. <br><br>
 __How to Use__
-1. 다음 링크의 미리 학습된 모델과 데이터를 받아서 ``Answer_Selection/output_dir`` 과 ``Answer_Selection/data`` 디렉토리로 압축해제 해주세요.<br>
+
+
+DramaQA starter code를 기반으로 작성했으니 해당 github를 참고하면 도움됩니다.
+>[DramaQA code linke](https://github.com/liveseongho/DramaQAChallenge2020)
+
+Answer Selection을 실행하기 위해선 AnotherMissOh 데이터를 가지고 있어야합니다.
+```
+data/
+  AnotherMissOh/
+    AnotherMissOh_images/
+        $IMAGE_FOLDERS
+    AnotherMissOh_QA/ -> inference에선 불필요
+    AnotherMissOh_Visual.json
+    AnotherMissOh_script.json 
+```
+
+1. 다음 링크의 미리 학습된 모델 ``Answer_Selection/data`` 디렉토리에 압축해제 해주세요.<br>
 Answer selection classification pre-trained model and data download link: <br>
->[Google drive link](https://drive.google.com/open?id=1U2OV0ZFi-BtjJC-78DeZ0UgPpic0tzKG)
+>[Google drive link](https://drive.google.com/file/d/1rMtOszKjbpGsrXCo6IMFjdmwfwCFFVue)
 
-2. ``Answer_Selection/transformers``에 들어가서 다음 명령어 실행.
->pip install .
+2. ``Answer_Selection/code``에 들어가서 다음 명령어 실행.
+>pip install -r requirements.txt
 
-3. ``Answer_Selection/run_answer_selection.sh``를 실행하면 output이 출력됩니다.(예시포함)
->./run_answer_selection.sh
+3. ``Answer_Selection/code/run_answer_selection.sh``를 실행하면 output이 출력됩니다.
+>bash run_answer_selection.sh
 
 4. ``output``으로 다음 두가지가 출력됩니다.
->Answer Confidence : [x.xxxx  x.xxxx] <br>
->Selected Answer : blah blah ~.
+>correc_idx : int, 
+>qid : int
 
 Contact : Gyu-Min Park (pgm1219@khu.ac.kr)
 
