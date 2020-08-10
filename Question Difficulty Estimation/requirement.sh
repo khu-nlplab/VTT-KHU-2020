@@ -18,4 +18,4 @@ python convert_tf_checkpoint_to_pytorch.py \
 
 git clone https://github.com/NVIDIA/apex
 cd apex
-pip install -v --no-cache-der ./
+pip install -v --no-cache-dir ./
