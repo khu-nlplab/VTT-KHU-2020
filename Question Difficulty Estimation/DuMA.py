@@ -3,10 +3,6 @@ import torch.nn as nn
 import copy
 import torch.nn.functional as F
 
-def _get_clones(module, N):
-    return nn.ModuleList([copy.deepcopy(module) for i in range(N)])
-
-
 def _get_activation_fn(activation):
     if activation == "relu":
         return F.relu
@@ -15,96 +11,21 @@ def _get_activation_fn(activation):
 
     raise RuntimeError("activation should be relu/gelu, not {}".format(activation))
 
+class DualMultiheadAttention(nn.Module):
+    def __init__(self, d_model, nhead, dropout=0.1):
+        super(DualMultiheadAttention, self).__init__()
 
-class TransformerEncoder(nn.Module):
-    r"""TransformerEncoder is a stack of N encoder layers
-    Args:
-        encoder_layer: an instance of the TransformerEncoderLayer() class (required).
-        num_layers: the number of sub-encoder-layers in the encoder (required).
-        norm: the layer normalization component (optional).
-    Examples::
-        >>> encoder_layer = nn.TransformerEncoderLayer(d_model=512, nhead=8)
-        >>> transformer_encoder = nn.TransformerEncoder(encoder_layer, num_layers=6)
-        >>> src = torch.rand(10, 32, 512)
-        >>> out = transformer_encoder(src)
-    """
-    __constants__ = ['norm']
-
-    def __init__(self, encoder_layer, num_layers, norm=None):
-        super(TransformerEncoder, self).__init__()
-        self.layers = _get_clones(encoder_layer, num_layers)
-        self.num_layers = num_layers
-        self.norm = norm
-
-    def forward(self, query, key, value, mask=None, src_key_padding_mask=None, additional_information=False, multi_information_num=None):
-        # type: (Tensor, Optional[Tensor], Optional[Tensor]) -> Tensor
-        r"""Pass the input through the encoder layers in turn.
-        Args:
-            src: the sequence to the encoder (required).
-            mask: the mask for the src sequence (optional).
-            src_key_padding_mask: the mask for the src keys per batch (optional).
-        Shape:
-            see the docs in Transformer class.
-        """
-
-        for layer in self.layers:
-            output, information_attn_list = layer(query, key, value, src_mask=mask, src_key_padding_mask=src_key_padding_mask, additional_information=additional_information, multi_information_num=multi_information_num)
-
-        if self.norm is not None:
-            output = self.norm(output)
-
-        return output, information_attn_list
+        self.fw_attn = MultiheadAttention(d_model, nhead, dropout=dropout, kdim=d_model, vdim=d_model)
+        self.bw_attn = MultiheadAttention(d_model, nhead, dropout=dropout, kdim=d_model, vdim=d_model)
 
 
-class TransformerEncoderLayer(nn.Module):
+    def forward(self, q, k, v, src_mask=None, src_key_padding_mask=None):
+        fw_rep, fw_attn = self.fw_attn(query=q, key=k, value=v, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
+        bw_rep, bw_attn = self.bw_attn(query=k, key=q, value=q)
 
-    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation="relu"):
-        super(TransformerEncoderLayer, self).__init__()
-        self.self_attn = MultiheadAttention(d_model, nhead, dropout=dropout, kdim=d_model, vdim=d_model)
-        self.description_attn = MultiheadAttention(d_model, nhead, dropout=dropout, kdim=d_model, vdim=d_model)
+        duma_rep = torch.cat([fw_rep, bw_rep], dim=2)
 
-        self.question_weight = nn.Linear(d_model, d_model, bias=False)
-        self.information_weight = nn.Linear(d_model, d_model, bias=False)
-        # Implementation of Feedforward model
-        self.linear1 = nn.Linear(d_model, dim_feedforward)
-        self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(dim_feedforward, d_model)
-
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        self.dropout1 = nn.Dropout(dropout)
-        self.dropout2 = nn.Dropout(dropout)
-
-        self.activation = _get_activation_fn(activation)
-
-    def __setstate__(self, state):
-        if 'activation' not in state:
-            state['activation'] = F.relu
-        super(TransformerEncoderLayer, self).__setstate__(state)
-
-    def forward(self, query, key, value, src_mask=None, src_key_padding_mask=None, additional_information=False, multi_information_num=None):
-        # type: (Tensor, Optional[Tensor], Optional[Tensor]) -> Tensor
-        r"""Pass the input through the encoder layer.
-        Args:
-            src: the sequence to the encoder layer (required).
-            src_mask: the mask for the src sequence (optional).
-            src_key_padding_mask: the mask for the src keys per batch (optional).
-            additional_information: the calculated attention between question and informations (optional).
-        Shape:
-            see the docs in Transformer class.
-        """
-
-        src, self_attn_weight_matrix = self.self_attn(query, key, value, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
-
-        src3 = src
-
-        src = query + self.dropout1(src3)
-        src = self.norm1(src)
-        src4 = self.linear2(self.dropout(self.activation(self.linear1(src))))
-        src = src + self.dropout2(src4)
-        src = self.norm2(src)
-        return src, self_attn_weight_matrix
-
+        return duma_rep
 
 class MultiheadAttention(nn.Module):
     r"""Allows the model to jointly attend to information

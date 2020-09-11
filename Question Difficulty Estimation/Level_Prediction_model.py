@@ -11,6 +11,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn import CrossEntropyLoss
 from Transformer_Encoder import TransformerEncoder, TransformerEncoderLayer
+from DuMA import DualMultiheadAttention
 
 def gelu(x):
     """Implementation of the gelu activation function.
@@ -339,7 +340,7 @@ class BertModel(nn.Module):
 
 class SequenceClassification(nn.Module):
 
-    def __init__(self, config, dropout_prob, num_labels):
+    def __init__(self, config, dropout_prob, num_labels, num_info=3):
         super(SequenceClassification, self).__init__()
 
         self.bert = BertModel(config)
@@ -350,77 +351,60 @@ class SequenceClassification(nn.Module):
         self.num_labels = num_labels
         self.dropout = nn.Dropout(dropout_prob)
 
+        # encoder layer
+        # self attention encoder
         self_encoder_layer = TransformerEncoderLayer(d_model=self.embedding_dim, nhead=4)
         self_encoder_norm = nn.LayerNorm(self.embedding_dim)
-        self.self_attention = TransformerEncoder(self_encoder_layer, num_layers=6, norm=self_encoder_norm)
+        self_attention = TransformerEncoder(self_encoder_layer, num_layers=6, norm=self_encoder_norm)
+        self.self_attention_list = nn.ModuleList([copy.deepcopy(self_attention) for _ in range(num_info)])
 
-        encoder_layer = TransformerEncoderLayer(d_model=self.embedding_dim, nhead=4)
-        encoder_norm = nn.LayerNorm(self.embedding_dim)
-        self.Information_self_attention = TransformerEncoder(encoder_layer, num_layers=6, norm=encoder_norm)
+        # Dual Multiheadattention
+        DuMA = DualMultiheadAttention(d_model=self.embedding_dim, nhead=4)
+        self.dual_attention_list = nn.ModuleList([copy.deepcopy(DuMA) for _ in range(num_info - 1)])
+
+        # Self-Attention
+        encoder_layer = TransformerEncoderLayer(d_model=(self.embedding_dim * ((num_info - 1) * 2)), nhead=4)
+        encoder_norm = nn.LayerNorm(self.embedding_dim * ((num_info - 1) * 2))
+        self.transformer_encoder = TransformerEncoder(encoder_layer, num_layers=6, norm=encoder_norm)
 
         self.classifier = nn.Sequential(
-            nn.Linear(self.embedding_dim * 4, self.embedding_dim * 2),
+            nn.Linear(self.embedding_dim * ((num_info - 1) * 4), self.embedding_dim * 2),
             nn.Dropout(dropout_prob),
             nn.ReLU(),
-            nn.Linear(self.embedding_dim * 2, int(self.embedding_dim)),
+            nn.Linear(self.embedding_dim * (2), int((self.embedding_dim))),
             nn.Dropout(dropout_prob),
             nn.ReLU(),
-            nn.Linear(int(self.embedding_dim), num_labels)
+            nn.Linear(int((self.embedding_dim)), num_labels)
         )
 
     def forward(self, q_vec, q_mask, q_segment,
                 d_vec=None, d_mask=None, d_segment=None,
-                a_vec=None, a_mask=None, a_segment=None,
                 u_vec=None, u_mask=None, u_segment=None,
                 labels=None, epoch=None):
 
         with torch.no_grad():
             q_emb = self.bert(q_vec, q_segment, q_mask)[0][-1]
+            d_emb = self.bert(d_vec, d_segment, d_mask)[0][-1]
+            u_emb = self.bert(u_vec, u_segment, u_mask)[0][-1]
 
-        if a_vec is not None:
-            if u_vec is not None:
-                with torch.no_grad():
-                    a_emb = self.bert(a_vec, a_segment, a_mask)[0][-1]
-                    u_emb = self.bert(u_vec, u_segment, u_mask)[0][-1]
+        q_emb = q_emb.permute(1, 0, 2)  # length batch em
+        d_emb = d_emb.permute(1, 0, 2)
+        u_emb = u_emb.permute(1, 0, 2)
 
-                    q_emb = q_emb[:, 1:].permute(1, 0, 2)
-                    a_emb = a_emb[:, 1:].permute(1, 0, 2)
-                    u_emb = u_emb[:, 1:].permute(1, 0, 2)
+        # self_attention
+        q_rep, _ = self.self_attention_list[0](q_emb, q_emb, q_emb)
+        d_rep, _ = self.self_attention_list[1](d_emb, d_emb, d_emb)
+        u_rep, _ = self.self_attention_list[2](u_emb, u_emb, u_emb)
 
-                    a_emb = a_emb.unsqueeze(0)
-                    u_emb = u_emb.unsqueeze(0)
+        # dual multi head attention
+        q_d_rep = self.dual_attention_list[0](q_rep, d_rep, d_rep)
+        q_a_rep = self.dual_attention_list[1](q_rep, u_rep, u_rep)
 
-                    Information_emb = torch.cat((a_emb, u_emb), dim=0)
+        inter_inform_rep = torch.cat([q_d_rep, q_a_rep], dim=2)
+        q_I_self_output, _ = self.transformer_encoder(inter_inform_rep, inter_inform_rep, inter_inform_rep)
 
-                    q_self_attn, informaion_attn_list = self.self_attention(query=q_emb, key=q_emb, value=q_emb, additional_information=False)
-                    q_I_self_output, informaion_attn_list = self.Information_self_attention(query=q_emb, key=Information_emb,
-                                                                      value=Information_emb,
-                                                                      additional_information=True,
-                                                                      multi_information_num=2)  # [batch_size, length, embedding_size]
+        result_output = q_I_self_output.permute(1, 2, 0)
 
-                    q_I_self_output = torch.cat([q_self_attn, q_I_self_output],
-                                                dim=2)  # [batch_size, length*2, embedding_size*2]
-                    # q_I_self_output = q_self_attn + q_I_self_output
-                    result_output = q_I_self_output.permute(1, 2, 0)
-
-            else:
-                with torch.no_grad():
-                    a_emb = self.bert(a_vec, a_segment, a_mask)[0][-1]
-
-                q_emb = q_emb[:, 1:].permute(1, 0, 2)
-                a_emb = a_emb[:, 1:].permute(1, 0, 2)
-
-
-                a_emb = a_emb.unsqueeze(0)
-
-
-                q_self_attn, informaion_attn_list = self.self_attention(query=q_emb, key=q_emb, value=q_emb,additional_information=False)
-                q_I_self_output, informaion_attn_list = self.Information_self_attention(query=q_emb, key=a_emb, value=a_emb,
-                                                                      additional_information=True, multi_information_num=1) # [batch_size, length, embedding_size]
-
-                q_I_self_output = torch.cat([q_self_attn, q_I_self_output], dim=2) # [batch_size, length*2, embedding_size*2]
-                #q_I_self_output = q_self_attn + q_I_self_output
-                result_output = q_I_self_output.permute(1, 2, 0)
 
         avg_pool = F.adaptive_avg_pool1d(result_output, 1)
         max_pool = F.adaptive_max_pool1d(result_output, 1)
