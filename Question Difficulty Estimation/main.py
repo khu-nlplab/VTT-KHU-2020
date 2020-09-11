@@ -13,8 +13,9 @@ def main():
     description = "Haeyoung1 suddenly wakes of from her bed still drunk. Haeyoung1 turns on the radio and dances to the music. While Haeyoung1 is changing the channel of the radio, Haeyoung1 happens to listen to the radio program that giving advice for the audience.Haeyoung1 is getting up from the bed. Haeyoung1 is turning on the radio and dancing. Haeyoung1 is changing the radio channel."
     utterance = "Like a refreshing club soda that will relief your gas, Like the sage of all sagesIf you'd like to receive some advice from Mr. Lee, Byeong-jun, then please give us a call right now. "
 
-    start = time.time()
     model = LevelClassificationModel(bert_config_file, vocab_file, dropout_prob, memory_model_path, logical_model_path)
+    
+    start = time.time()
     memory_level, logic_level = model.predict(question, description, utterance)
     end = time.time()
 
