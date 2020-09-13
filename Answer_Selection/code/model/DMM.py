@@ -214,9 +214,9 @@ class DMM(nn.Module):
         return out 
 
     def get_name(self, x, x_l):
-        x_mask = x.masked_fill(x>20, 21)
+        x_mask = x.masked_fill(x > 20, 21)
         x_onehot = self._to_one_hot(x_mask, 22, x_l)
-        x_sum = torch.sum(x_onehot[:,:,:21], dim=1)
+        x_sum = torch.sum(x_onehot[:, :, :21], dim=1)
         return x_sum > 0
 
 

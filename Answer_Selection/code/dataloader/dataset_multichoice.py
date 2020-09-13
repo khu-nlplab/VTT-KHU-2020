@@ -294,8 +294,7 @@ class SimpleTextData():
 
         self.special_tokens = [sos_token, eos_token, pad_token, unk_token]
 
-        if self.args.input != None:
-            self.preprocess_text(self.vocab)
+        self.input = None
 
     def preprocess_text(self, vocab):
 
@@ -446,7 +445,7 @@ class SimpleTextData():
         return indices
 
     def merge_text_data(self):
-        qa = [self.args.input]
+        qa = [self.input]
         subtitles = load_subtitle(self.subtitle_path)
 
         res = []
@@ -1023,6 +1022,7 @@ def get_tokenizer(args):
 
 def load_data(args, vocab=None):
     print('Loading text data')
+
     text = TextData(args, vocab)
     vocab = text.vocab
 
@@ -1059,11 +1059,36 @@ def load_data(args, vocab=None):
     )
 
     print("n_train : {} \nn_val : {} \nn_test : {}".format(len(train_dataset), len(valid_dataset), len(test_dataset)))
-
     return {'train': train_iter, 'val': val_iter, 'test': test_iter}, vocab
 
 
-def preprocess_input(args, vocab):
+def preprocess_input(args, vocab, text, image):
+    text.input = args.input
+
+    text.preprocess_text(vocab)
+
+    infer_dataset = MultiModalData(args, text, image, mode='test')
+
+    infer_iter = DataLoader(
+        infer_dataset,
+        batch_size=args.batch_sizes[2],
+        shuffle=args.shuffle[2],
+        num_workers=args.num_workers,
+        collate_fn=infer_dataset.collate_fn
+    )
+
+    return {'infer': infer_iter}
+
+def get_iterator(args, vocab=None):
+
+
+    iters, vocab = load_data(args, vocab)
+    print("Data loading done")
+
+
+    return iters, vocab
+
+def get_cache_data(args, vocab=None):
 
     print('Loading text data')
     text = SimpleTextData(args, vocab)
@@ -1072,27 +1097,5 @@ def preprocess_input(args, vocab):
     print('Load image data')
     image = ImageData(args, vocab)
 
-
-    infer_dataset = MultiModalData(args, text, image, mode='test')
-
-    infer_iter = DataLoader(
-        infer_dataset,
-        batch_size=args.batch_sizes[0],
-        shuffle=args.shuffle[0],
-        num_workers=args.num_workers,
-        collate_fn=infer_dataset.collate_fn
-    )
-
-    return {'infer': infer_iter} , vocab
-
-def get_iterator(args, vocab=None):
-
-    if args.input is None:
-        iters, vocab = load_data(args, vocab)
-        print("Data loading done")
-    else :
-        iters, vocab = preprocess_input(args, vocab)
-        print("Data preprocess done")
-
-    return iters, vocab
+    return args, vocab, image, text
 

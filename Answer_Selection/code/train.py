@@ -17,8 +17,15 @@ def get_trainer(args, model, loss_fn, optimizer):
         optimizer.zero_grad()
         net_inputs, target = prepare_batch(args, batch, model.vocab)
         y_pred = model(**net_inputs)
-        batch_size = y_pred.shape[0]
         loss, stats = loss_fn(y_pred, target)
+
+        if type(y_pred) == tuple:
+            y_pred = y_pred[0]
+
+        if y_pred.dim() > 2:
+            y_pred = y_pred.sum(dim=1)
+
+        batch_size = y_pred.shape[0]
         loss.backward()
         optimizer.step()
         return loss.item(), stats, batch_size, y_pred.detach(), target.detach()
@@ -50,6 +57,7 @@ def train(args):
 
     metrics = get_metrics(args, vocab)
     evaluator = get_evaluator(args, model, loss_fn, metrics)
+
 
     logger = get_logger(args)
     @trainer.on(Events.STARTED)

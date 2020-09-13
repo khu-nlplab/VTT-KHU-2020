@@ -12,7 +12,7 @@ from dataloader.dataset_multichoice import get_iterator
 from utils import wait_for_key, suppress_stdout
 from train import train
 from evaluate import evaluate, qa_similarity
-from infer import infer
+from infer import prepare_model, infer
 from blackbox_infer import blackbox_infer
 
 class Cli:
@@ -28,7 +28,6 @@ class Cli:
         args.update(resolve_paths(config))
         args.update(fix_seed(args))
         args.update(get_device(args))
-        print(args)
 
         return Munch(args)
 
@@ -55,26 +54,40 @@ class Cli:
 
     def train(self, **kwargs):
         args = self._default_args(**kwargs)
-
+        args.update({'mode': 'train'})
         train(args)
 
         wait_for_key()
 
     def evaluate(self, **kwargs):
         args = self._default_args(**kwargs)
-
+        args.update({'mode': 'evaluate'})
         evaluate(args)
 
         wait_for_key()
 
     def infer(self, **kwargs):
+        import time
+        start = time.time()
         args = self._default_args(**kwargs)
 
-        infer(args)
+        args.update({'mode' : 'infer'})
+
+        if args.input is not None:
+            if type(args.input) is str:
+                import json
+                args.input = json.loads(args.input)
+            args, cache = prepare_model(args)
+            load_time = time.time()
+            print("load time ", load_time - start)
+            infer(args, cache)
+        else:
+            infer(args)
+
+        print("infer time ",time.time() - load_time)
 
     def blackbox_infer(self, **kwargs):
         args = self._default_args(**kwargs)
-
         blackbox_infer(args)
 
 
@@ -114,5 +127,5 @@ def get_device(args):
 
 
 if __name__ == "__main__":
-    # command line에서 함수와 옵션들을 실행할 수 있음.
+
     Fire(Cli)
