@@ -37,24 +37,26 @@ data/
   AnotherMissOh/
     AnotherMissOh_images/
         $IMAGE_FOLDERS
+        cache
     AnotherMissOh_QA/ -> inference에선 불필요
     AnotherMissOh_Visual.json
-    AnotherMissOh_script.json 
+    AnotherMissOh_script.json
+  ckpt/
 ```
 
-1. 다음 링크의 미리 학습된 모델 ``Answer_Selection/data`` 디렉토리에 압축해제 해주세요.<br>
+1. 다음 링크의 미리 학습된 모델과 전처리된 데이터 ``Answer_Selection/data`` 디렉토리에 압축해제 해주세요.<br>
 Answer selection classification pre-trained model and data download link: <br>
->[Google drive link](https://drive.google.com/file/d/1rMtOszKjbpGsrXCo6IMFjdmwfwCFFVue)
+>[Google drive link](https://drive.google.com/drive/folders/1H9wTPtn8fwJcmLlfJN_li52TWzit6MGT?usp=sharing)
 
 2. ``Answer_Selection/code``에 들어가서 다음 명령어 실행.
 >pip install -r requirements.txt
 
-3. ``Answer_Selection/code/run_answer_selection.sh``를 실행하면 output이 출력됩니다.
->bash run_answer_selection.sh
+3. ``Answer_Selection/code/run.sh``를 실행하면 output이 출력됩니다.
+>bash run.sh
 
 4. ``output``으로 다음 두가지가 출력됩니다.
 >correc_idx : int, 
->qid : int
+>answer : str
 
 Contact : Gyu-Min Park (pgm1219@khu.ac.kr)
 
