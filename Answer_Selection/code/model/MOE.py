@@ -9,7 +9,6 @@ class MOE(nn.Module):
 
     def __init__(self, args, vocab, input_size, num_choice=5):
         super().__init__()
-        print("Model name: Dual Matching Multistream")
 
         self.args = args
         self.input_size = input_size
@@ -78,7 +77,7 @@ class MOE(nn.Module):
             expert.eval()
             with torch.no_grad():
                 output = expert(que, answers, **features) # [batch , answers]
-                soft_output = F.softmax(output, dim=1) # [batch , 1 ,answers]
+                soft_output = F.softmax(output, dim=1) # [batch , outputs]
                 outputs.append(soft_output)
 
         outputs = torch.stack(outputs, dim=1) # [batch , n_experts, answers]

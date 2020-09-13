@@ -47,9 +47,13 @@ def get_evaluator(args, model, loss_fn, metrics={}):
             if net_inputs['subtitle'].nelement() == 0:
                 import ipdb; ipdb.set_trace()  # XXX DEBUG
             y_pred = model(**net_inputs)
-            batch_size = y_pred.shape[0]
-            loss, stats = loss_fn(y_pred, target)
 
+            loss, stats = loss_fn(y_pred, target)
+            if type(y_pred) == tuple:
+                y_pred = y_pred[0]
+            if y_pred.dim() > 2:
+                y_pred = y_pred.sum(dim=1)
+            batch_size = y_pred.shape[0]
             vocab = model.vocab
             '''
             if sample_count < 100:
@@ -123,7 +127,13 @@ def evaluate_by_logic_level(args, model, iterator, print_total=False):
             if net_inputs['subtitle'].nelement() == 0:
                 import ipdb; ipdb.set_trace()  # XXX DEBUG
 
-            y_pred = model(**net_inputs)   
+            y_pred = model(**net_inputs)
+
+            if type(y_pred) == tuple:
+                y_pred = y_pred[0]
+            if y_pred.dim() > 2:
+                y_pred = y_pred.sum(dim=1)
+
             _, pred_idx = y_pred.max(dim=1)
             result = pred_idx == target
 
@@ -144,7 +154,6 @@ def evaluate_by_logic_level(args, model, iterator, print_total=False):
 
 def evaluate(args):
     args, model, iters, vocab, ckpt_available = get_model_ckpt(args)
-    print(args)
     if ckpt_available:
         print("loaded checkpoint {}".format(args.ckpt_name))
     loss_fn = get_loss(args, vocab)
