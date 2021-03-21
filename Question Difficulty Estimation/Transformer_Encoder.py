@@ -93,17 +93,42 @@ class TransformerEncoderLayer(nn.Module):
         Shape:
             see the docs in Transformer class.
         """
+        informaion_attn_list = list()
 
-        src, self_attn_weight_matrix = self.self_attn(query, key, value, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
+        if additional_information:
+            if multi_information_num is not None:
+                #key, value = [multi_information_num, batch_size, seqlen-1, embedding_dim]
+                key_value_size =key[0].size()
+                additional_information_src = torch.zeros(key_value_size, dtype=torch.float32, device='cpu')
+                weight_list = nn.ModuleList([copy.deepcopy(self.information_weight) for _ in range(multi_information_num)])
+                for i in range(multi_information_num):
+                    key_ = key[i] #[batch_size, seqlen-1, embedding_dim]
+                    value_ = value[i] #[batch_size, seqlen-1, embeeding_dim]
+                    src2, attn_weight_matrix = self.self_attn(query, key_, value_, attn_mask=src_mask,
+                                    key_padding_mask=src_key_padding_mask)
 
-        src3 = src
+                    additional_information_src += weight_list[i](src2)
+                    informaion_attn_list.append(attn_weight_matrix)
+
+                src3 = additional_information_src
+
+            else:
+                src2, attn_weight_matrix = self.self_attn(query, key, value, attn_mask=src_mask,
+                                      key_padding_mask=src_key_padding_mask)
+                informaion_attn_list.append(attn_weight_matrix)
+                src3 = src2
+        else:
+            src, self_attn_weight_matrix = self.self_attn(query, query, query, attn_mask=src_mask, key_padding_mask=src_key_padding_mask)
+
+            informaion_attn_list.append(self_attn_weight_matrix)
+            src3 = src
 
         src = query + self.dropout1(src3)
         src = self.norm1(src)
         src4 = self.linear2(self.dropout(self.activation(self.linear1(src))))
         src = src + self.dropout2(src4)
         src = self.norm2(src)
-        return src, self_attn_weight_matrix
+        return src, informaion_attn_list
 
 
 class MultiheadAttention(nn.Module):
