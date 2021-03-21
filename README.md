@@ -9,7 +9,7 @@ __How to Use__
 > ./requirement.sh
 
 2. 다음 링크의 미리 학습된 모델을 받아주세요<br>
-모델을 다운로드 받은 후 model 디렉토리를 만들어 model 디렉토리 안에 다운 받은 모델을 넣어 주세요. <br>
+모델을 다운로드 받은 후 checkpoints 디렉토리를 만들어 checkpoints 디렉토리 안에 다운 받은 모델을 넣어 주세요. <br>
 question level classification pre-trained model download link : <br>
 >[Google drive link](https://drive.google.com/drive/folders/1RUj_tEFbCpfPTPL0_9eA3QsbaHcymD3r?usp=sharing)
 
