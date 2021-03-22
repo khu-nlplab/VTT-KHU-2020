@@ -84,7 +84,42 @@ class LevelClassificationModel():
         label = label_
         return label_map[label]
 
-    def predict(self, question, utterance):
+    def utter_to_vid(vid):
+        script_file = "AnotherMissOh_script.json" # path to AnotherMissOh script file
+        with open(script_file, "r", encoding="utf-8") as f:
+            script_data =  json.load(f)
+
+        if vid[-4:] == "0000":
+            for shot_num in shot_contained_number:
+                length = len(str(shot_num))
+                if length == 1:
+                    shot_id = vid[:-4] + '000' + str(shot_num)
+                elif length == 2:
+                    shot_id = vid[:-4] + '00' + str(shot_num)
+                elif length == 3:
+                    shot_id = vid[:-4] + '0' + str(shot_num)
+                elif length == 4:
+                    shot_id = vid[:-4] + str(shot_num)
+                else:
+                    shot_id = None
+                try:
+                    container = script_data[shot_id]["contained_subs"]
+                    for contain in container:
+                        utterance += contain["utter"].replace('\n', '')
+                except KeyError:
+                    pass
+        else:
+            try:
+                container = script_data[vid]["contained_subs"]
+                for contain in container:
+                    utterance += contain["utter"].replace('\n', '')
+            except KeyError:
+                pass
+            
+        return utterance
+
+    def predict(self, question, vid):
+        utterance = self.utter_to_vid(vid)
 
         input_data, memory_label_map, logical_label_map = self.data_loader(question,
                                                                            utterance=utterance)
