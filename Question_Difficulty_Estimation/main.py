@@ -4,7 +4,7 @@ import torch
 
 def main():
     question = "Why did Sukyung block Jinsang?"
-    utterance = "AnotherMissOh01_001_0079"
+    vid = "AnotherMissOh01_001_0000"
 
     bert_config_file = 'checkpoints/bert_config.json'  # bert config file path
     vocab_file = 'checkpoints/vocab.txt'  # bert vocabulary file path
