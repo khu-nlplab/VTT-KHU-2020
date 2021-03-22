@@ -114,8 +114,7 @@ class LevelClassificationModel():
                     utterance += sub["utter"].replace('\n', '')
             except KeyError:
                 pass
-        print(utterance)
-        exit()
+        
         return utterance
 
     def predict(self, question, vid):
